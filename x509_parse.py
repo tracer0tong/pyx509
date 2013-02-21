@@ -34,17 +34,18 @@ def x509_parse(derData):
     x509cert = X509Certificate(cert)
     return x509cert
 
-#Sample usage showing retrieving certificate fields
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: x509_parse.py certificate.der"
-        sys.exit(1)
 
-    der_file = sys.argv[1]
+def print_certificate_details(x509cert):
+    """
+    Print certificate details
 
-    x509cert = x509_parse(file(der_file).read())
-    tbs = x509cert.tbsCertificate
-
+    Incomplete!
+    """
+    try:
+        tbs = x509cert.tbsCertificate
+    except AttributeError:
+        tbs = x509cert
+    print "=== X509 Certificate ==="
     print "X.509 version: %d (0x%x)" % (tbs.version + 1, tbs.version)
     print "Serial no: 0x%x" % tbs.serial_number
     print "Signature algorithm:", x509cert.signature_algorithm
@@ -165,3 +166,15 @@ if __name__ == "__main__":
             print "\t\tExcluded:", subtreeFmt(nce.excludedSubtrees)
 
     print "Signature:", hexlify(x509cert.signature)
+    print "=== EOF X509 Certificate ==="
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print >> sys.stderr, "Usage: x509_parse.py certificate.der"
+        sys.exit(1)
+
+    der_file = sys.argv[1]
+
+    x509cert = x509_parse(file(der_file).read())
+    print_certificate_details(x509cert)

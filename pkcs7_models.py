@@ -20,6 +20,10 @@
 Created on Dec 11, 2009
 
 '''
+import base64
+import datetime
+import time
+
 
 from pyasn1.error import PyAsn1Error
 from pkcs7.asn1_models.tools import *
@@ -29,15 +33,13 @@ from pkcs7.asn1_models.X509_certificate import *
 from pkcs7.asn1_models.certificate_extensions import *
 from pkcs7.debug import *
 from pkcs7.asn1_models.decoder_workarounds import decode
-import datetime
-import time
 
 
 class CertificateError(Exception):
     pass
 
 
-class Name():
+class Name(object):
     '''
     Represents Name (structured, tagged).
     This is a dictionary. Keys are types of names (mapped from OID to name if
@@ -107,7 +109,7 @@ class Name():
         return self.__attributes.copy()
 
 
-class ValidityInterval():
+class ValidityInterval(object):
     '''
     Validity interval of a certificate. Values are UTC times.
     Attributes:
@@ -130,14 +132,24 @@ class ValidityInterval():
     @staticmethod
     def _getGeneralizedTime(timeComponent):
         """Return time from Time component in YYYYMMDDHHMMSSZ format"""
-        if timeComponent.getName() == "generalTime":  # from pkcs7.asn1_models.X509_certificate.Time
+        # !!!! some hack to get signingTime working
+        name = ''
+        try:
+            name = timeComponent.getName()
+        except AttributeError:
+            pass
+        if name == "generalTime":  # from pkcs7.asn1_models.X509_certificate.Time
             # already in YYYYMMDDHHMMSSZ format
             return timeComponent.getComponent()._value
         else:  # utcTime
             # YYMMDDHHMMSSZ format
             # UTCTime has only short year format (last two digits), so add
             # 19 or 20 to make it "full" year; by RFC 5280 it's range 1950..2049
-            timeValue = timeComponent.getComponent()._value
+            # !!!! some hack to get signingTime working
+            try:
+                timeValue = timeComponent.getComponent()._value
+            except AttributeError:
+                timeValue = str(timeComponent[1][0])
             shortyear = int(timeValue[:2])
             return (shortyear >= 50 and "19" or "20") + timeValue
 
@@ -160,7 +172,7 @@ class ValidityInterval():
         return datetime.datetime(year, month, day, hour, minute, second)
 
 
-class PublicKeyInfo():
+class PublicKeyInfo(object):
     '''
     Represents information about public key.
     Expects RSA or DSA.
@@ -195,7 +207,7 @@ class PublicKeyInfo():
             self.algName = self.alg
 
 
-class SubjectAltNameExt():
+class SubjectAltNameExt(object):
     '''
     Subject alternative name extension.
     '''
@@ -224,7 +236,7 @@ class SubjectAltNameExt():
                     self.items.append((key, value))
 
 
-class BasicConstraintsExt():
+class BasicConstraintsExt(object):
     '''
     Basic constraints of this certificate - is it CA and maximal chain depth.
     '''
@@ -235,7 +247,7 @@ class BasicConstraintsExt():
             self.max_path_len = asn1_bConstraints.getComponentByName("pathLen")._value
 
 
-class KeyUsageExt():
+class KeyUsageExt(object):
     '''
     Key usage extension.
     '''
@@ -274,7 +286,7 @@ class KeyUsageExt():
             return
 
 
-class ExtendedKeyUsageExt():
+class ExtendedKeyUsageExt(object):
     '''
     Extended key usage extension.
     '''
@@ -298,7 +310,7 @@ class ExtendedKeyUsageExt():
             setattr(self, attr, oid in usageOIDs)
 
 
-class AuthorityKeyIdExt():
+class AuthorityKeyIdExt(object):
     '''
     Authority Key identifier extension.
     Identifies key of the authority which was used to sign this certificate.
@@ -314,7 +326,7 @@ class AuthorityKeyIdExt():
             self.auth_cert_issuer = iss
 
 
-class SubjectKeyIdExt():
+class SubjectKeyIdExt(object):
     '''
     Subject Key Identifier extension. Just the octet string.
     '''
@@ -322,7 +334,7 @@ class SubjectKeyIdExt():
         self.subject_key_id = asn1_subKey._value
 
 
-class PolicyQualifier():
+class PolicyQualifier(object):
     '''
     Certificate policy qualifier. Consist of id and
     own qualifier (id-qt-cps | id-qt-unotice).
@@ -343,7 +355,7 @@ class PolicyQualifier():
             #    self.qualifier = comp
 
 
-class AuthorityInfoAccessExt():
+class AuthorityInfoAccessExt(object):
     '''
     Authority information access.
     Instance variables:
@@ -363,7 +375,7 @@ class AuthorityInfoAccessExt():
         pass
 
 
-class CertificatePolicyExt():
+class CertificatePolicyExt(object):
     '''
     Certificate policy extension.
     COnsist of id and qualifiers.
@@ -376,7 +388,7 @@ class CertificatePolicyExt():
             self.qualifiers = [PolicyQualifier(pq) for pq in qualifiers]
 
 
-class Reasons():
+class Reasons(object):
     '''
     CRL distribution point reason flags
     '''
@@ -415,7 +427,7 @@ class Reasons():
             return
 
 
-class CRLdistPointExt():
+class CRLdistPointExt(object):
     '''
     CRL distribution point extension
     '''
@@ -438,7 +450,7 @@ class CRLdistPointExt():
             self.issuer = None
 
 
-class QcStatementExt():
+class QcStatementExt(object):
     '''
     id_pe_qCStatement
     '''
@@ -449,7 +461,7 @@ class QcStatementExt():
             self.statementInfo = str(self.statementInfo)
 
 
-class PolicyConstraintsExt:
+class PolicyConstraintsExt(object):
     def __init__(self, asn1_policyConstraints):
         self.requireExplicitPolicy = None
         self.inhibitPolicyMapping = None
@@ -464,7 +476,7 @@ class PolicyConstraintsExt:
             self.inhibitPolicyMapping = inhibitPolicyMapping._value
 
 
-class NameConstraint:
+class NameConstraint(object):
     def __init__(self, base, minimum, maximum):
         self.base = base
         self.minimum = minimum
@@ -477,7 +489,7 @@ class NameConstraint:
         return self.__repr__()
 
 
-class NameConstraintsExt:
+class NameConstraintsExt(object):
     def __init__(self, asn1_nameConstraints):
         self.permittedSubtrees = []
         self.excludedSubtrees = []
@@ -495,8 +507,7 @@ class NameConstraintsExt:
         subtreeList = []
 
         for subtree in asn1Subtree:
-            import ipdb; ipdb.set_trace()
-            #TODO: somehow extract the fucking type of GeneralName
+            #TODO: somehow extract the type of GeneralName
             base = subtree.getComponentByName("base").getComponent()  # ByName("dNSName")
             if base is None:
                 continue
@@ -513,7 +524,7 @@ class NameConstraintsExt:
         return subtreeList
 
 
-class NetscapeCertTypeExt:
+class NetscapeCertTypeExt(object):
     def __init__(self, asn1_netscapeCertType):
         #https://www.mozilla.org/projects/security/pki/nss/tech-notes/tn3.html
         bits = asn1_netscapeCertType._value
@@ -522,7 +533,7 @@ class NetscapeCertTypeExt:
         self.caCert = len(bits) > 5 and bool(bits[5])
 
 
-class ExtensionType:
+class ExtensionType(object):
     '''"Enum" of extensions we know how to parse.'''
     SUBJ_ALT_NAME = "subjAltNameExt"
     AUTH_KEY_ID = "authKeyIdExt"
@@ -539,12 +550,12 @@ class ExtensionType:
     NETSCAPE_CERT_TYPE = "netscapeCertTypeExt"
 
 
-class ExtensionTypes:
+class ExtensionTypes(object):
     #hackish way to enumerate known extensions without writing them twice
     knownExtensions = [name for (attr, name) in vars(ExtensionType).items() if attr.isupper()]
 
 
-class Extension():
+class Extension(object):
     '''
     Represents one Extension in X509v3 certificate
     Attributes:
@@ -595,7 +606,7 @@ class Extension():
             raise CertificateError("Critical extension OID %s not understood" % self.id)
 
 
-class Certificate():
+class Certificate(object):
     '''
     Represents Certificate object.
     Attributes:
@@ -648,7 +659,7 @@ class Certificate():
         return [Extension(ext) for ext in extensions]
 
 
-class X509Certificate():
+class X509Certificate(object):
     '''
     Represents X509 certificate.
     Attributes:
@@ -736,17 +747,112 @@ class X509Certificate():
         return rev_date
 
 
-class Attribute():
+class Attribute(object):
     """
     One attribute in SignerInfo attributes set
     """
+    _oid2Name = {
+        "1.2.840.113549.1.9.1": "emailAddress",
+        "1.2.840.113549.1.9.2": "unstructuredName",
+        "1.2.840.113549.1.9.3": "contentType",
+        "1.2.840.113549.1.9.4": "messageDigest",
+        "1.2.840.113549.1.9.5": "signingTime",
+        "1.2.840.113549.1.9.6": "counterSignature",
+        "1.2.840.113549.1.9.7": "challengePassword",
+        "1.2.840.113549.1.9.8": "unstructuredAddress",
+        "1.2.840.113549.1.9.16.2.12": "signingCertificate",
+        "2.5.4.5": "serialNumber",
+    }
+
     def __init__(self, attribute):
         self.type = str(attribute.getComponentByName("type"))
-        self.value = str(attribute.getComponentByName("value").getComponentByPosition(0))
-        #print base64.b64encode(self.value)
+        self.value = attribute.getComponentByName("value").getComponentByPosition(0)
+        self.name = self._oid2Name.get(self.type, self.type)
+        if self.name == 'signingTime':
+            self.value = ValidityInterval.parse_date(
+                ValidityInterval._getGeneralizedTime(attribute))
+
+    def __str__(self):
+        value = str(self.value)
+        if self.name == 'messageDigest':
+            value = base64.standard_b64encode(value)
+        elif self.name == 'signingCertificate':
+            value = SigningCertificate(self.value)
+        elif self.name == 'contentType':
+            value = ContentType(value)
+        elif self.name == 'serialNumber':
+            value = "0x%x" % long(str(self.value))
+        return "%s: %s" % (self.name, value)
 
 
-class AutheticatedAttributes():
+class ContentType(object):
+    """
+    PKCS 7 content type
+    """
+    _oid2Name = {
+        "1.2.840.113549.1.7.1": "data",
+        "1.2.840.113549.1.7.2": "signedData",
+        "1.2.840.113549.1.7.3": "envelopedData",
+        "1.2.840.113549.1.7.4": "signedAndEnvelopedData",
+        "1.2.840.113549.1.7.5": "digestedData",
+        "1.2.840.113549.1.7.6": "encryptedData",
+    }
+
+    def __init__(self, data):
+        self.value = data
+
+    def __str__(self):
+        return self._oid2Name.get(self.value, self.value)
+
+
+class SigningCertificate(object):
+    """
+    Sequence of certs and policies defined in RFC 2634
+
+    SigningCertificate ::=  SEQUENCE {
+       certs        SEQUENCE OF ESSCertID,
+       policies     SEQUENCE OF PolicyInformation OPTIONAL
+    }
+    """
+    def __init__(self, data):
+        self.certs = []
+        for cert in data.getComponentByPosition(0):
+            self.certs.append(ESSCertID(cert))
+        self.policies = []
+        try:
+            self.policies = data.getComponentByPosition(1)
+        except IndexError:
+            pass
+
+    def __str__(self):
+        return ','.join([str(cert) for cert in self.certs])
+
+
+class ESSCertID(object):
+    """
+    Certificate identifier RFC 2634
+
+    ESSCertID ::=  SEQUENCE {
+        certHash                 Hash,
+        issuerSerial             IssuerSerial OPTIONAL
+    }
+
+    Hash ::= OCTET STRING -- SHA1 hash of entire certificate
+
+    IssuerSerial ::= SEQUENCE {
+        issuer                   GeneralNames,
+        serialNumber             CertificateSerialNumber
+    }
+    """
+    def __init__(self, data):
+        self.hash = data.getComponentByPosition(0)
+        self.issuer = data.getComponentByPosition(1).getComponentByPosition(0)
+        self.serial_number = data.getComponentByPosition(1).getComponentByPosition(1)._value
+
+    def __str__(self):
+        return "0x%x" % self.serial_number
+
+class AutheticatedAttributes(object):
     """
     Authenticated attributes of signer info
     """
@@ -756,7 +862,7 @@ class AutheticatedAttributes():
             self.attributes.append(Attribute(aa))
 
 
-class SignerInfo():
+class SignerInfo(object):
     """
     Represents information about a signer.
     Attributes:
@@ -785,13 +891,13 @@ class SignerInfo():
 ######
 #TSTinfo
 ######
-class MsgImprint():
+class MsgImprint(object):
     def __init__(self, asn1_msg_imprint):
         self.alg = str(asn1_msg_imprint.getComponentByName("algId"))
         self.imprint = str(asn1_msg_imprint.getComponentByName("imprint"))
 
 
-class TsAccuracy():
+class TsAccuracy(object):
     def __init__(self, asn1_acc):
         secs = asn1_acc.getComponentByName("seconds")
         if secs:
@@ -804,7 +910,7 @@ class TsAccuracy():
             self.micros = micros._value
 
 
-class TimeStampToken():
+class TimeStampToken(object):
     '''
     Holder for Timestamp Token Info - attribute from the qtimestamp.
     '''
