@@ -22,8 +22,9 @@ from binascii import hexlify
 
 from pkcs7.asn1_models.X509_certificate import Certificate
 from pkcs7_models import X509Certificate, PublicKeyInfo, ExtendedKeyUsageExt
-
 from pkcs7.asn1_models.decoder_workarounds import decode
+from pkcs7.asn1_models.oid import oid_map
+
 
 def x509_parse(derData):
     """Decodes certificate.
@@ -48,7 +49,8 @@ def print_certificate_details(x509cert):
     print "=== X509 Certificate ==="
     print "X.509 version: %d (0x%x)" % (tbs.version + 1, tbs.version)
     print "Serial no: 0x%x" % tbs.serial_number
-    print "Signature algorithm:", x509cert.signature_algorithm
+    print "Signature algorithm:", oid_map.get(
+        x509cert.signature_algorithm, x509cert.signature_algorithm)
     print "Issuer:", str(tbs.issuer)
     print "Validity:"
     print "\tNot Before:", tbs.validity.get_valid_from_as_datetime()
