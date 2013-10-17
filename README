@@ -4,6 +4,7 @@ This is probably the most complete parser of X.509 certificates in python.
 
 Requirements:
 pyasn1 >= 0.1.4rc6 (or 0.1.4 once it is released)
+pyasn1-modules
 
 Code is in alpha stage! Don't use for anything sensitive. I wrote it (based on
 previous work of colleagues) since there is no comprehensive python parser for
