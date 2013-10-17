@@ -21,25 +21,60 @@ Created on Dec 11, 2009
 
 '''
 import base64
+from binascii import hexlify
 import datetime
 import time
 
 
 from pyasn1.error import PyAsn1Error
-from pkcs7.asn1_models.tools import *
-from pkcs7.asn1_models.oid import *
-from pkcs7.asn1_models.tools import *
-from pkcs7.asn1_models.X509_certificate import *
-from pkcs7.asn1_models.certificate_extensions import *
-from pkcs7.debug import *
+from pkcs7.asn1_models.oid import oid_map
+from pkcs7.asn1_models.tools import tuple_to_OID, get_RSA_pub_key_material, get_DSA_pub_key_material
+from pkcs7.asn1_models.X509_certificate import Certificate as asn1_Certificate
+from pkcs7.asn1_models.pkcs_signed_data import Qts
+#from pkcs7.asn1_models.certificate_extensions import *
+from pkcs7.asn1_models import certificate_extensions as asn1_cert_ext
+#from pkcs7.debug import *
 from pkcs7.asn1_models.decoder_workarounds import decode
+from pkcs7 import pkcs7_decoder
 
 
 class CertificateError(Exception):
     pass
 
 
-class Name(object):
+class BaseModel(object):
+    asn1Spec = None
+
+    @classmethod
+    def from_der(cls, derData):
+        """Decodes certificate.
+        @param derData: DER-encoded pkcs7
+        @returns: PKCS7 structure (tree).
+        """
+        asn1 = decode(derData, asn1Spec=cls.asn1Spec)
+        return cls(asn1[0])
+
+    def enc(self, value, level=1, format=None):
+        """Encode some binary value to hexstring or base64
+        and print it in a readable way
+        """
+        sep = '\n' + (level * '\t')
+        format = format or 'b64'
+        if format == 'hex':
+            value = hexlify(value)
+        else:
+            value = base64.standard_b64encode(value)
+        res = ['(%s)' % format]
+        while value:
+            res.append(value[:60])
+            value = value[60:]
+        return sep.join(res)
+
+    def oid2name(self, value):
+        return oid_map.get(value, value)
+
+
+class Name(BaseModel):
     '''
     Represents Name (structured, tagged).
     This is a dictionary. Keys are types of names (mapped from OID to name if
@@ -74,6 +109,16 @@ class Name(object):
         "1.3.6.1.4.1.5734.1.3": "Apellido2",
         "1.3.6.1.4.1.5734.1.1": "Nombre",
         "1.3.6.1.4.1.5734.1.4": "DNI",
+        # Spain, Ministry of Presidence, X509 SubjectAltName fields electronic sealing
+        "2.16.724.1.3.5.2.2.1": "certType",
+        "2.16.724.1.3.5.2.2.2": "O",
+        "2.16.724.1.3.5.2.2.3": "serialNumber",
+        "2.16.724.1.3.5.2.2.4": "DNI",
+        "2.16.724.1.3.5.2.2.5": "CN",
+        "2.16.724.1.3.5.2.2.6": "Nombre",
+        "2.16.724.1.3.5.2.2.7": "Apellido1",
+        "2.16.724.1.3.5.2.2.8": "Apellido2",
+        "2.16.724.1.3.5.2.2.9": "email",
     }
 
     def __init__(self, name):
@@ -109,7 +154,7 @@ class Name(object):
         return self.__attributes.copy()
 
 
-class ValidityInterval(object):
+class ValidityInterval(BaseModel):
     '''
     Validity interval of a certificate. Values are UTC times.
     Attributes:
@@ -172,7 +217,7 @@ class ValidityInterval(object):
         return datetime.datetime(year, month, day, hour, minute, second)
 
 
-class PublicKeyInfo(object):
+class PublicKeyInfo(BaseModel):
     '''
     Represents information about public key.
     Expects RSA or DSA.
@@ -207,7 +252,7 @@ class PublicKeyInfo(object):
             self.algName = self.alg
 
 
-class SubjectAltNameExt(object):
+class SubjectAltNameExt(BaseModel):
     '''
     Subject alternative name extension.
     '''
@@ -236,7 +281,7 @@ class SubjectAltNameExt(object):
                     self.items.append((key, value))
 
 
-class BasicConstraintsExt(object):
+class BasicConstraintsExt(BaseModel):
     '''
     Basic constraints of this certificate - is it CA and maximal chain depth.
     '''
@@ -247,7 +292,7 @@ class BasicConstraintsExt(object):
             self.max_path_len = asn1_bConstraints.getComponentByName("pathLen")._value
 
 
-class KeyUsageExt(object):
+class KeyUsageExt(BaseModel):
     '''
     Key usage extension.
     '''
@@ -286,7 +331,7 @@ class KeyUsageExt(object):
             return
 
 
-class ExtendedKeyUsageExt(object):
+class ExtendedKeyUsageExt(BaseModel):
     '''
     Extended key usage extension.
     '''
@@ -310,7 +355,7 @@ class ExtendedKeyUsageExt(object):
             setattr(self, attr, oid in usageOIDs)
 
 
-class AuthorityKeyIdExt(object):
+class AuthorityKeyIdExt(BaseModel):
     '''
     Authority Key identifier extension.
     Identifies key of the authority which was used to sign this certificate.
@@ -326,7 +371,7 @@ class AuthorityKeyIdExt(object):
             self.auth_cert_issuer = iss
 
 
-class SubjectKeyIdExt(object):
+class SubjectKeyIdExt(BaseModel):
     '''
     Subject Key Identifier extension. Just the octet string.
     '''
@@ -334,7 +379,7 @@ class SubjectKeyIdExt(object):
         self.subject_key_id = asn1_subKey._value
 
 
-class PolicyQualifier(object):
+class PolicyQualifier(BaseModel):
     '''
     Certificate policy qualifier. Consist of id and
     own qualifier (id-qt-cps | id-qt-unotice).
@@ -355,7 +400,7 @@ class PolicyQualifier(object):
             #    self.qualifier = comp
 
 
-class AuthorityInfoAccessExt(object):
+class AuthorityInfoAccessExt(BaseModel):
     '''
     Authority information access.
     Instance variables:
@@ -375,7 +420,7 @@ class AuthorityInfoAccessExt(object):
         pass
 
 
-class CertificatePolicyExt(object):
+class CertificatePolicyExt(BaseModel):
     '''
     Certificate policy extension.
     COnsist of id and qualifiers.
@@ -388,12 +433,12 @@ class CertificatePolicyExt(object):
             self.qualifiers = [PolicyQualifier(pq) for pq in qualifiers]
 
 
-class Reasons(object):
+class Reasons(BaseModel):
     '''
     CRL distribution point reason flags
     '''
     def __init__(self, asn1_rflags):
-        self.unused  = False   # (0),
+        self.unused = False   # (0),
         self.keyCompromise = False   # (1),
         self.cACompromise = False   # (2),
         self.affiliationChanged = False    # (3),
@@ -427,7 +472,7 @@ class Reasons(object):
             return
 
 
-class CRLdistPointExt(object):
+class CRLdistPointExt(BaseModel):
     '''
     CRL distribution point extension
     '''
@@ -450,7 +495,7 @@ class CRLdistPointExt(object):
             self.issuer = None
 
 
-class QcStatementExt(object):
+class QcStatementExt(BaseModel):
     '''
     id_pe_qCStatement
     '''
@@ -461,7 +506,7 @@ class QcStatementExt(object):
             self.statementInfo = str(self.statementInfo)
 
 
-class PolicyConstraintsExt(object):
+class PolicyConstraintsExt(BaseModel):
     def __init__(self, asn1_policyConstraints):
         self.requireExplicitPolicy = None
         self.inhibitPolicyMapping = None
@@ -476,7 +521,7 @@ class PolicyConstraintsExt(object):
             self.inhibitPolicyMapping = inhibitPolicyMapping._value
 
 
-class NameConstraint(object):
+class NameConstraint(BaseModel):
     def __init__(self, base, minimum, maximum):
         self.base = base
         self.minimum = minimum
@@ -489,7 +534,7 @@ class NameConstraint(object):
         return self.__repr__()
 
 
-class NameConstraintsExt(object):
+class NameConstraintsExt(BaseModel):
     def __init__(self, asn1_nameConstraints):
         self.permittedSubtrees = []
         self.excludedSubtrees = []
@@ -524,7 +569,7 @@ class NameConstraintsExt(object):
         return subtreeList
 
 
-class NetscapeCertTypeExt(object):
+class NetscapeCertTypeExt(BaseModel):
     def __init__(self, asn1_netscapeCertType):
         #https://www.mozilla.org/projects/security/pki/nss/tech-notes/tn3.html
         bits = asn1_netscapeCertType._value
@@ -533,7 +578,7 @@ class NetscapeCertTypeExt(object):
         self.caCert = len(bits) > 5 and bool(bits[5])
 
 
-class ExtensionType(object):
+class ExtensionType(BaseModel):
     '''"Enum" of extensions we know how to parse.'''
     SUBJ_ALT_NAME = "subjAltNameExt"
     AUTH_KEY_ID = "authKeyIdExt"
@@ -550,12 +595,12 @@ class ExtensionType(object):
     NETSCAPE_CERT_TYPE = "netscapeCertTypeExt"
 
 
-class ExtensionTypes(object):
+class ExtensionTypes(BaseModel):
     #hackish way to enumerate known extensions without writing them twice
     knownExtensions = [name for (attr, name) in vars(ExtensionType).items() if attr.isupper()]
 
 
-class Extension(object):
+class Extension(BaseModel):
     '''
     Represents one Extension in X509v3 certificate
     Attributes:
@@ -565,19 +610,29 @@ class Extension(object):
     '''
     #OID: (ASN1Spec, valueConversionFunction, attributeName)
     _extensionDecoders = {
-        "2.5.29.17": (GeneralNames(),                 lambda v: SubjectAltNameExt(v),                 ExtensionType.SUBJ_ALT_NAME),
-        "2.5.29.35": (KeyId(),                        lambda v: AuthorityKeyIdExt(v),                 ExtensionType.AUTH_KEY_ID),
-        "2.5.29.14": (SubjectKeyId(),                 lambda v: SubjectKeyIdExt(v),                   ExtensionType.SUBJ_KEY_ID),
-        "2.5.29.19": (BasicConstraints(),             lambda v: BasicConstraintsExt(v),               ExtensionType.BASIC_CONSTRAINTS),
-        "2.5.29.15": (None,                           lambda v: KeyUsageExt(v),                       ExtensionType.KEY_USAGE),
-        "2.5.29.32": (CertificatePolicies(),          lambda v: [CertificatePolicyExt(p) for p in v], ExtensionType.CERT_POLICIES),
-        "2.5.29.31": (CRLDistributionPoints(),        lambda v: [CRLdistPointExt(p) for p in v],      ExtensionType.CRL_DIST_POINTS),
-        "1.3.6.1.5.5.7.1.3": (Statements(),           lambda v: [QcStatementExt(s) for s in v],       ExtensionType.STATEMENTS),
-        "1.3.6.1.5.5.7.1.1": (AuthorityInfoAccess(),  lambda v: [AuthorityInfoAccessExt(s) for s in v], ExtensionType.AUTH_INFO_ACCESS),
-        "2.5.29.37": (ExtendedKeyUsage(),             lambda v: ExtendedKeyUsageExt(v),               ExtensionType.EXT_KEY_USAGE),
-        "2.5.29.36": (PolicyConstraints(),            lambda v: PolicyConstraintsExt(v),              ExtensionType.POLICY_CONSTRAINTS),
-        "2.5.29.30": (NameConstraints(),              lambda v: NameConstraintsExt(v),                ExtensionType.NAME_CONSTRAINTS),
-        "2.16.840.1.113730.1.1": (NetscapeCertType(), lambda v: NetscapeCertTypeExt(v),               ExtensionType.NETSCAPE_CERT_TYPE),
+        "2.5.29.17": (asn1_cert_ext.GeneralNames(), lambda v: SubjectAltNameExt(v),
+                      ExtensionType.SUBJ_ALT_NAME),
+        "2.5.29.35": (asn1_cert_ext.KeyId(), lambda v: AuthorityKeyIdExt(v),
+                      ExtensionType.AUTH_KEY_ID),
+        "2.5.29.14": (asn1_cert_ext.SubjectKeyId(), lambda v: SubjectKeyIdExt(v),
+                      ExtensionType.SUBJ_KEY_ID),
+        "2.5.29.19": (asn1_cert_ext.BasicConstraints(), lambda v: BasicConstraintsExt(v),
+                      ExtensionType.BASIC_CONSTRAINTS),
+        "2.5.29.15": (None, lambda v: asn1_cert_ext.KeyUsageExt(v), ExtensionType.KEY_USAGE),
+        "2.5.29.32": (asn1_cert_ext.CertificatePolicies(), lambda v: [CertificatePolicyExt(p) for p in v],
+                      ExtensionType.CERT_POLICIES),
+        "2.5.29.31": (asn1_cert_ext.CRLDistributionPoints(), lambda v: [CRLdistPointExt(p) for p in v],
+                      ExtensionType.CRL_DIST_POINTS),
+        "1.3.6.1.5.5.7.1.3": (asn1_cert_ext.Statements(), lambda v: [QcStatementExt(s) for s in v],
+                              ExtensionType.STATEMENTS),
+        "1.3.6.1.5.5.7.1.1": (asn1_cert_ext.AuthorityInfoAccess(), lambda v: [AuthorityInfoAccessExt(s) for s in v],
+                              ExtensionType.AUTH_INFO_ACCESS),
+        "2.5.29.37": (asn1_cert_ext.ExtendedKeyUsage(), lambda v: ExtendedKeyUsageExt(v), ExtensionType.EXT_KEY_USAGE),
+        "2.5.29.36": (asn1_cert_ext.PolicyConstraints(), lambda v: PolicyConstraintsExt(v),
+                      ExtensionType.POLICY_CONSTRAINTS),
+        "2.5.29.30": (asn1_cert_ext.NameConstraints(), lambda v: NameConstraintsExt(v), ExtensionType.NAME_CONSTRAINTS),
+        "2.16.840.1.113730.1.1": (asn1_cert_ext.NetscapeCertType(), lambda v: NetscapeCertTypeExt(v),
+                                  ExtensionType.NETSCAPE_CERT_TYPE),
     }
 
     def __init__(self, extension):
@@ -606,7 +661,7 @@ class Extension(object):
             raise CertificateError("Critical extension OID %s not understood" % self.id)
 
 
-class Certificate(object):
+class Certificate(BaseModel):
     '''
     Represents Certificate object.
     Attributes:
@@ -659,7 +714,7 @@ class Certificate(object):
         return [Extension(ext) for ext in extensions]
 
 
-class X509Certificate(object):
+class X509Certificate(BaseModel):
     '''
     Represents X509 certificate.
     Attributes:
@@ -667,6 +722,7 @@ class X509Certificate(object):
     - signature
     - tbsCertificate (the certificate)
     '''
+    asn1Spec = asn1_Certificate()
 
     def __init__(self, certificate):
         self.signature_algorithm = str(certificate.getComponentByName("signatureAlgorithm"))
@@ -683,16 +739,16 @@ class X509Certificate(object):
         which means that the certificate is valid
         '''
         return self._evaluate_verification_results(
-                        self.verification_results,
-                        ignore_missing_crl_check=ignore_missing_crl_check)
+            self.verification_results,
+            ignore_missing_crl_check=ignore_missing_crl_check)
 
     def valid_at_date(self, date, ignore_missing_crl_check=False):
         """check validity of all parts of the certificate with regard
         to a specific date"""
         verification_results = self.verification_results_at_date(date)
         return self._evaluate_verification_results(
-                        verification_results,
-                        ignore_missing_crl_check=ignore_missing_crl_check)
+            verification_results,
+            ignore_missing_crl_check=ignore_missing_crl_check)
 
     def _evaluate_verification_results(self, verification_results,
                                        ignore_missing_crl_check=False):
@@ -746,8 +802,141 @@ class X509Certificate(object):
         rev_date = ValidityInterval.parse_date(rev_date)
         return rev_date
 
+    def display(self):
+        """
+        Print certificate details
 
-class Attribute(object):
+        Incomplete!
+        """
+        try:
+            tbs = self.tbsCertificate
+        except AttributeError:
+            tbs = self
+        print "=== X509 Certificate ==="
+        print "X.509 version: %d (0x%x)" % (tbs.version + 1, tbs.version)
+        print "Serial no: 0x%x" % tbs.serial_number
+        print "Signature algorithm:", self.oid2name(tbs.signature_algorithm)
+        print "Issuer:", str(tbs.issuer)
+        print "Validity:"
+        print "\tNot Before:", tbs.validity.get_valid_from_as_datetime()
+        print "\tNot After:", tbs.validity.get_valid_to_as_datetime()
+        print "Subject:", str(tbs.subject)
+        print "Subject Public Key Info:"
+        print "\tPublic Key Algorithm:", tbs.pub_key_info.algName
+
+        if tbs.issuer_uid:
+            print "Issuer UID:", self.enc(tbs.issuer_uid)
+        if tbs.subject_uid:
+            print "Subject UID:", self.enc(tbs.subject_uid)
+
+        algType = tbs.pub_key_info.algType
+        algParams = tbs.pub_key_info.key
+
+        if (algType == PublicKeyInfo.RSA):
+            print "\t\tModulus:", self.enc(algParams["mod"], 3)
+            print "\t\tExponent:", algParams["exp"]
+        elif (algType == PublicKeyInfo.DSA):
+            print "\t\tPub:", self.enc(algParams["pub"], 3),
+            print "\t\tP:", self.enc(algParams["p"], 3),
+            print "\t\tQ:", self.enc(algParams["q"], 3),
+            print "\t\tG:", self.enc(algParams["g"], 3),
+        else:
+            print "\t\t(parsing keys of this type not implemented)"
+
+        print "\nExtensions:"
+        if tbs.authInfoAccessExt:
+            print "\tAuthority Information Access Ext: is_critical:", tbs.authInfoAccessExt.is_critical
+            for aia in tbs.authInfoAccessExt.value:
+                print "\t\taccessLocation:", aia.access_location
+                print "\t\taccessMethod:", aia.access_method
+                print "\t\toid:", aia.id
+        if tbs.authKeyIdExt:
+            print "\tAuthority Key Id Ext: is_critical:", tbs.authKeyIdExt.is_critical
+            aki = tbs.authKeyIdExt.value
+            if hasattr(aki, "key_id"):
+                print "\t\tkey id:", self.enc(aki.key_id, 3)
+            if hasattr(aki, "auth_cert_sn"):
+                print "\t\tcert serial no:", aki.auth_cert_sn
+            if hasattr(aki, "auth_cert_issuer"):
+                print "\t\tissuer:", aki.auth_cert_issuer
+
+        if tbs.basicConstraintsExt:
+            print "\tBasic Constraints Ext: is_critical:", tbs.basicConstraintsExt.is_critical
+            bc = tbs.basicConstraintsExt.value
+            print "\t\tCA:", bc.ca
+            print "\t\tmax_path_len:", bc.max_path_len
+
+        if tbs.certPoliciesExt:
+            print "\tCert Policies Ext: is_critical:", tbs.certPoliciesExt.is_critical
+            policies = tbs.certPoliciesExt.value
+            for policy in policies:
+                print "\t\tpolicy OID:", policy.id
+                for qualifier in policy.qualifiers:
+                    print "\t\t\toid:", qualifier.id
+                    print "\t\t\tqualifier:", qualifier.qualifier
+
+        if tbs.crlDistPointsExt:
+            print "\tCRL Distribution Points: is_critical:", tbs.crlDistPointsExt.is_critical
+            crls = tbs.crlDistPointsExt.value
+            for crl in crls:
+                if crl.dist_point:
+                    print "\t\tdistribution point:", crl.dist_point
+                if crl.issuer:
+                    print "\t\tissuer:", crl.issuer
+                if crl.reasons:
+                    print "\t\treasons:", crl.reasons
+
+        if tbs.extKeyUsageExt:
+            print "\tExtended Key Usage: is_critical:", tbs.extKeyUsageExt.is_critical
+            eku = tbs.extKeyUsageExt.value
+            set_flags = [flag for flag in ExtendedKeyUsageExt._keyPurposeAttrs.values() if getattr(eku, flag)]
+            print "\t\t", ",".join(set_flags)
+
+        if tbs.keyUsageExt:
+            print "\tKey Usage: is_critical:", tbs.keyUsageExt.is_critical
+            ku = tbs.keyUsageExt.value
+            flags = ["digitalSignature", "nonRepudiation", "keyEncipherment",
+                     "dataEncipherment", "keyAgreement", "keyCertSign",
+                     "cRLSign", "encipherOnly", "decipherOnly",
+                     ]
+
+            set_flags = [flag for flag in flags if getattr(ku, flag)]
+            print "\t\t", ",".join(set_flags)
+
+        if tbs.policyConstraintsExt:
+            print "\tPolicy Constraints: is_critical:", tbs.policyConstraintsExt.is_critical
+            pc = tbs.policyConstraintsExt.value
+
+            print "\t\trequire explicit policy: ", pc.requireExplicitPolicy
+            print "\t\tinhibit policy mapping: ", pc.inhibitPolicyMapping
+
+        #if tbs.netscapeCertTypeExt: #...partially implemented
+
+        if tbs.subjAltNameExt:
+            print "\tSubject Alternative Name: is_critical:", tbs.subjAltNameExt.is_critical
+            for key, value in tbs.subjAltNameExt.value.items:
+                print "\t\t%s: %s" % (key, value)
+
+        if tbs.subjKeyIdExt:
+            print "\tSubject Key Id: is_critical:", tbs.subjKeyIdExt.is_critical
+            ski = tbs.subjKeyIdExt.value
+            print "\t\tkey id:", self.enc(ski.subject_key_id, 3)
+
+        if tbs.nameConstraintsExt:
+            nce = tbs.nameConstraintsExt.value
+            print "\tName constraints: is_critical:", tbs.nameConstraintsExt.is_critical
+
+            subtreeFmt = lambda subtrees: ", ".join([str(x) for x in subtrees])
+            if nce.permittedSubtrees:
+                print "\t\tPermitted:", subtreeFmt(nce.permittedSubtrees)
+            if nce.excludedSubtrees:
+                print "\t\tExcluded:", subtreeFmt(nce.excludedSubtrees)
+
+        print "Signature:", self.enc(self.signature)
+        print "=== EOF X509 Certificate ==="
+
+
+class Attribute(BaseModel):
     """
     One attribute in SignerInfo attributes set
     """
@@ -785,7 +974,7 @@ class Attribute(object):
         return "%s: %s" % (self.name, value)
 
 
-class ContentType(object):
+class ContentType(BaseModel):
     """
     PKCS 7 content type
     """
@@ -796,6 +985,7 @@ class ContentType(object):
         "1.2.840.113549.1.7.4": "signedAndEnvelopedData",
         "1.2.840.113549.1.7.5": "digestedData",
         "1.2.840.113549.1.7.6": "encryptedData",
+        "1.2.840.113549.1.9.16.1.4": "TimeStampToken",
     }
 
     def __init__(self, data):
@@ -805,7 +995,7 @@ class ContentType(object):
         return self._oid2Name.get(self.value, self.value)
 
 
-class SigningCertificate(object):
+class SigningCertificate(BaseModel):
     """
     Sequence of certs and policies defined in RFC 2634
 
@@ -828,7 +1018,7 @@ class SigningCertificate(object):
         return ','.join([str(cert) for cert in self.certs])
 
 
-class ESSCertID(object):
+class ESSCertID(BaseModel):
     """
     Certificate identifier RFC 2634
 
@@ -852,7 +1042,8 @@ class ESSCertID(object):
     def __str__(self):
         return "0x%x" % self.serial_number
 
-class AutheticatedAttributes(object):
+
+class AutheticatedAttributes(BaseModel):
     """
     Authenticated attributes of signer info
     """
@@ -862,7 +1053,7 @@ class AutheticatedAttributes(object):
             self.attributes.append(Attribute(aa))
 
 
-class SignerInfo(object):
+class SignerInfo(BaseModel):
     """
     Represents information about a signer.
     Attributes:
@@ -877,7 +1068,8 @@ class SignerInfo(object):
     def __init__(self, signer_info):
         self.version = signer_info.getComponentByName("version")._value
         self.issuer = Name(signer_info.getComponentByName("issuerAndSerialNum").getComponentByName("issuer"))
-        self.serial_number = signer_info.getComponentByName("issuerAndSerialNum").getComponentByName("serialNumber")._value
+        self.serial_number = (signer_info.getComponentByName("issuerAndSerialNum")
+                              .getComponentByName("serialNumber")._value)
         self.digest_algorithm = str(signer_info.getComponentByName("digestAlg"))
         self.encrypt_algorithm = str(signer_info.getComponentByName("encryptAlg"))
         self.signature = signer_info.getComponentByName("signature")._value
@@ -887,17 +1079,39 @@ class SignerInfo(object):
         else:
             self.auth_attributes = AutheticatedAttributes(auth_attrib)
 
+    def display(self):
+        print "== Signer info =="
+        print "Certificate serial number: 0x%x" % self.serial_number
+        print "Issuer:", self.issuer
+        print "Digest Algorithm:", self.oid2name(self.digest_algorithm)
+        print "Signature:", self.enc(self.signature)
+        if self.auth_attributes:
+            print "Attributes:"
+            for attr in self.auth_attributes.attributes:
+                print "    ", str(attr)
+        print "== EOF Signer info =="
+
 
 ######
 #TSTinfo
 ######
-class MsgImprint(object):
+class MsgImprint(BaseModel):
+
     def __init__(self, asn1_msg_imprint):
         self.alg = str(asn1_msg_imprint.getComponentByName("algId"))
         self.imprint = str(asn1_msg_imprint.getComponentByName("imprint"))
 
+    def display(self, level=1):
+        sep = "\t" * level
+        print sep, "Algorithm Id:", self.alg
+        print sep, "Value:", self.enc(self.imprint, 2)
 
-class TsAccuracy(object):
+
+class TsAccuracy(BaseModel):
+    seconds = None
+    milis = None
+    micros = None
+
     def __init__(self, asn1_acc):
         secs = asn1_acc.getComponentByName("seconds")
         if secs:
@@ -909,8 +1123,15 @@ class TsAccuracy(object):
         if micros:
             self.micros = micros._value
 
+    def display(self):
+        print "==== Accuracy ===="
+        print "Seconds:", self.seconds or ''
+        print "Milis:", self.milis or ''
+        print "Micros", self.micros or ''
+        print "==== EOF Accuracy ===="
 
-class TimeStampToken(object):
+
+class TSTInfo(BaseModel):
     '''
     Holder for Timestamp Token Info - attribute from the qtimestamp.
     '''
@@ -918,10 +1139,16 @@ class TimeStampToken(object):
         self.version = asn1_tstInfo.getComponentByName("version")._value
         self.policy = str(asn1_tstInfo.getComponentByName("policy"))
         self.msgImprint = MsgImprint(asn1_tstInfo.getComponentByName("messageImprint"))
-        self.serialNum = asn1_tstInfo.getComponentByName("serialNum")._value
+        self.serialNumber = asn1_tstInfo.getComponentByName("serialNum")._value
         self.genTime = asn1_tstInfo.getComponentByName("genTime")._value
         self.accuracy = TsAccuracy(asn1_tstInfo.getComponentByName("accuracy"))
-        self.tsa = Name(asn1_tstInfo.getComponentByName("tsa"))
+        self.ordering = asn1_tstInfo.getComponentByName("ordering")._value
+        self.tsa = Name(asn1_tstInfo.getComponentByName("tsa") or '')
+        nonce = asn1_tstInfo.getComponentByName("nonce")
+        self.nonce = nonce and nonce._value
+        extensions = asn1_tstInfo.getComponentByName("extensions")
+        self.extensions = (extensions and extensions._value) or []
+
         # place for parsed certificates in asn1 form
         self.asn1_certificates = []
         # place for certificates transformed to X509Certificate
@@ -956,6 +1183,85 @@ class TimeStampToken(object):
             micro = int(float(rest) * 1e6)
         else:
             micro = 0
-        tz_delta = datetime.timedelta(seconds=time.daylight and time.altzone
-                                        or time.timezone)
+        tz_delta = datetime.timedelta(
+            seconds=time.daylight and time.altzone or time.timezone)
         return datetime.datetime(year, month, day, hour, minute, second, micro) - tz_delta
+
+    def display(self):
+        print "=== Timestamp Info ==="
+        print "Version:", self.version
+        print "Policy:", self.policy
+        print "msgImprint:"
+        self.msgImprint.display()
+        print "Serial number:", self.serialNumber
+        print "Time:", self.genTime
+        self.accuracy.display()
+        print "TSA:", self.tsa
+        print "=== EOF Timestamp Info ==="
+
+
+class EncapsulatedContentInfo(BaseModel):
+
+    def __init__(self, parsed_content_info):
+        self.contentType = ContentType(str(parsed_content_info.getComponentByName('eContentType')))
+        self.content = parsed_content_info.getComponentByName("eContent")
+        if self.content:
+            if str(self.contentType) == 'TimeStampToken':
+                parsed = pkcs7_decoder.decode_tst(self.content)
+                self.content = TSTInfo(parsed)
+            else:
+                self.content = self.content._value
+
+    def display(self):
+        print "== Encapsulated content Info =="
+        print "ContentType:", self.contentType
+        try:
+            self.content.display()
+        except AttributeError:
+            print "Content:", self.content
+
+
+class PKCS7_SignedData(BaseModel):
+    """A PKCS 7 signed data object"""
+    encapsulatedContentInfo = None
+
+    def __init__(self, parsed_content):
+        self._content = parsed_content
+        version, digestAlgorithms, encapsulatedContentInfo, certificates, crls, signerInfos = parsed_content
+        self.version = version
+        self.digestAlgorithms = digestAlgorithms
+        if encapsulatedContentInfo:
+            self.encapsulatedContentInfo = EncapsulatedContentInfo(encapsulatedContentInfo)
+        self.certificates = [X509Certificate(cert[0]) for cert in certificates]
+        self.crls = crls
+        self.signerInfos = [SignerInfo(info) for info in signerInfos]
+
+    def display(self):
+        print "= PKCS7 signature block ="
+        print "PKCS7 Version:", self.version
+        self.encapsulatedContentInfo.display()
+        for signerInfo in self.signerInfos:
+            signerInfo.display()
+        for cert in self.certificates:
+            cert.display()
+        print "= EOF PKsCS7 signature block ="
+
+
+class PKCS7(BaseModel):
+    """A PKCS 7 object
+    Currently, we only handle SignedData."""
+    asn1Spec = Qts()
+
+    def __init__(self, parsed_content):
+        contentType, content = parsed_content
+        self.contentType = ContentType(str(contentType))
+        if str(self.contentType) == 'signedData':
+            self.content = PKCS7_SignedData(content)
+        else:
+            raise ValueError("Currently we only can handle PKCS7 'signedData' messages")
+
+    def display(self):
+        try:
+            self.content.display()
+        except AttributeError:
+            print self.content
