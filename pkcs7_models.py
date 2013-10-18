@@ -618,7 +618,7 @@ class Extension(BaseModel):
                       ExtensionType.SUBJ_KEY_ID),
         "2.5.29.19": (asn1_cert_ext.BasicConstraints(), lambda v: BasicConstraintsExt(v),
                       ExtensionType.BASIC_CONSTRAINTS),
-        "2.5.29.15": (None, lambda v: asn1_cert_ext.KeyUsageExt(v), ExtensionType.KEY_USAGE),
+        "2.5.29.15": (None, lambda v: KeyUsageExt(v), ExtensionType.KEY_USAGE),
         "2.5.29.32": (asn1_cert_ext.CertificatePolicies(), lambda v: [CertificatePolicyExt(p) for p in v],
                       ExtensionType.CERT_POLICIES),
         "2.5.29.31": (asn1_cert_ext.CRLDistributionPoints(), lambda v: [CRLdistPointExt(p) for p in v],
