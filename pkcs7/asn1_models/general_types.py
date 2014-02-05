@@ -41,7 +41,7 @@ class ConvertibleBitString(univ.BitString):
         '''
 
         def _tuple_to_byte(tuple):
-            return bytes([int(''.join(map(str, tuple)),2)])
+            return bytes([int(''.join(map(str, tuple)), 2)])
 
         res = b''
         byte_len = int(len(self._value) / 8)

@@ -138,7 +138,7 @@ def _verify_data(data, certificates, signer_infos):
                     if (value != calculated):
                         raise Exception("Digest in authenticated attributes differs\
                                         from the digest of message!")
-                # prepare authAttributes to verification - change some headers in it
+                        # prepare authAttributes to verification - change some headers in it
             data_to_verify = _prepare_auth_attributes_to_digest(auth_attributes)
 
         data_to_verify = calculate_digest(data_to_verify, digest_alg)

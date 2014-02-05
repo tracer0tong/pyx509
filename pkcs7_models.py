@@ -62,12 +62,12 @@ class BaseModel(object):
         if format == 'hex':
             value = hexlify(value)
         else:
-            value = base64.standard_b64encode(value)
+            value = base64.standard_b64encode(str(value).encode())
         res = ['(%s)' % format]
         while value:
-            res.append(value[:60])
+            res.append(str(value[:60]))
             value = value[60:]
-        return sep.join(str(res))
+        return sep.join(res)
 
     def oid2name(self, value):
         return oid_map.get(value, value)
@@ -204,7 +204,6 @@ class ValidityInterval(BaseModel):
         """
         parses date string and returns a datetime object;
         """
-        print(date)
         year = int(date[:4])
         month = int(date[4:6])
         day = int(date[6:8])
@@ -826,87 +825,87 @@ class X509Certificate(BaseModel):
         except AttributeError:
             tbs = self
         print("=== X509 Certificate ===")
-        print(("X.509 version: %d (0x%x)" % (tbs.version + 1, tbs.version)))
-        print(("Serial no: 0x%x" % tbs.serial_number))
-        print(("Signature algorithm:", self.oid2name(tbs.signature_algorithm)))
-        print(("Issuer:", str(tbs.issuer)))
+        print("X.509 version: %d (0x%x)" % (tbs.version + 1, tbs.version))
+        print("Serial no: 0x%x" % tbs.serial_number)
+        print("Signature algorithm:", self.oid2name(tbs.signature_algorithm))
+        print("Issuer:", str(tbs.issuer))
         print("Validity:")
-        print(("\tNot Before:", tbs.validity.get_valid_from_as_datetime()))
-        print(("\tNot After:", tbs.validity.get_valid_to_as_datetime()))
-        print(("Subject:", str(tbs.subject)))
+        print("\tNot Before:", tbs.validity.get_valid_from_as_datetime())
+        print("\tNot After:", tbs.validity.get_valid_to_as_datetime())
+        print("Subject:", str(tbs.subject))
         print("Subject Public Key Info:")
-        print(("\tPublic Key Algorithm:", tbs.pub_key_info.algName))
+        print("\tPublic Key Algorithm:", tbs.pub_key_info.algName)
 
         if tbs.issuer_uid:
-            print(("Issuer UID:", self.enc(tbs.issuer_uid)))
+            print("Issuer UID:", self.enc(tbs.issuer_uid))
         if tbs.subject_uid:
-            print(("Subject UID:", self.enc(tbs.subject_uid)))
+            print("Subject UID:", self.enc(tbs.subject_uid))
 
         algType = tbs.pub_key_info.algType
         algParams = tbs.pub_key_info.key
 
         if (algType == PublicKeyInfo.RSA):
-            print(("\t\tModulus:", self.enc(algParams["mod"], 3)))
-            print(("\t\tExponent:", algParams["exp"]))
+            print("\t\tModulus:", self.enc(algParams["mod"], 3))
+            print("\t\tExponent:", algParams["exp"])
         elif (algType == PublicKeyInfo.DSA):
-            print(("\t\tPub:", self.enc(algParams["pub"], 3)))
-            print(("\t\tP:", self.enc(algParams["p"], 3)))
-            print(("\t\tQ:", self.enc(algParams["q"], 3)))
-            print(("\t\tG:", self.enc(algParams["g"], 3)))
+            print("\t\tPub:", self.enc(algParams["pub"], 3))
+            print("\t\tP:", self.enc(algParams["p"], 3))
+            print("\t\tQ:", self.enc(algParams["q"], 3))
+            print("\t\tG:", self.enc(algParams["g"], 3))
         else:
             print("\t\t(parsing keys of this type not implemented)")
 
         print("\nExtensions:")
         if tbs.authInfoAccessExt:
-            print(("\tAuthority Information Access Ext: is_critical:", tbs.authInfoAccessExt.is_critical))
+            print("\tAuthority Information Access Ext: is_critical:", tbs.authInfoAccessExt.is_critical)
             for aia in tbs.authInfoAccessExt.value:
-                print(("\t\taccessLocation:", aia.access_location))
-                print(("\t\taccessMethod:", aia.access_method))
-                print(("\t\toid:", aia.id))
+                print("\t\taccessLocation:", aia.access_location)
+                print("\t\taccessMethod:", aia.access_method)
+                print("\t\toid:", aia.id)
         if tbs.authKeyIdExt:
-            print(("\tAuthority Key Id Ext: is_critical:", tbs.authKeyIdExt.is_critical))
+            print("\tAuthority Key Id Ext: is_critical:", tbs.authKeyIdExt.is_critical)
             aki = tbs.authKeyIdExt.value
             if hasattr(aki, "key_id"):
-                print(("\t\tkey id:", self.enc(aki.key_id, 3)))
+                print("\t\tkey id:", self.enc(aki.key_id, 3))
             if hasattr(aki, "auth_cert_sn"):
-                print(("\t\tcert serial no:", aki.auth_cert_sn))
+                print("\t\tcert serial no:", aki.auth_cert_sn)
             if hasattr(aki, "auth_cert_issuer"):
-                print(("\t\tissuer:", aki.auth_cert_issuer))
+                print("\t\tissuer:", aki.auth_cert_issuer)
 
         if tbs.basicConstraintsExt:
-            print(("\tBasic Constraints Ext: is_critical:", tbs.basicConstraintsExt.is_critical))
+            print("\tBasic Constraints Ext: is_critical:", tbs.basicConstraintsExt.is_critical)
             bc = tbs.basicConstraintsExt.value
-            print(("\t\tCA:", bc.ca))
-            print(("\t\tmax_path_len:", bc.max_path_len))
+            print("\t\tCA:", bc.ca)
+            print("\t\tmax_path_len:", bc.max_path_len)
 
         if tbs.certPoliciesExt:
-            print(("\tCert Policies Ext: is_critical:", tbs.certPoliciesExt.is_critical))
+            print("\tCert Policies Ext: is_critical:", tbs.certPoliciesExt.is_critical)
             policies = tbs.certPoliciesExt.value
             for policy in policies:
-                print(("\t\tpolicy OID:", policy.id))
+                print("\t\tpolicy OID:", policy.id)
                 for qualifier in policy.qualifiers:
-                    print(("\t\t\toid:", qualifier.id))
-                    print(("\t\t\tqualifier:", qualifier.qualifier))
+                    print("\t\t\toid:", qualifier.id)
+                    print("\t\t\tqualifier:", qualifier.qualifier)
 
         if tbs.crlDistPointsExt:
-            print(("\tCRL Distribution Points: is_critical:", tbs.crlDistPointsExt.is_critical))
+            print("\tCRL Distribution Points: is_critical:", tbs.crlDistPointsExt.is_critical)
             crls = tbs.crlDistPointsExt.value
             for crl in crls:
                 if crl.dist_point:
-                    print(("\t\tdistribution point:", crl.dist_point))
+                    print("\t\tdistribution point:", crl.dist_point)
                 if crl.issuer:
-                    print(("\t\tissuer:", crl.issuer))
+                    print("\t\tissuer:", crl.issuer)
                 if crl.reasons:
-                    print(("\t\treasons:", crl.reasons))
+                    print("\t\treasons:", crl.reasons)
 
         if tbs.extKeyUsageExt:
-            print(("\tExtended Key Usage: is_critical:", tbs.extKeyUsageExt.is_critical))
+            print("\tExtended Key Usage: is_critical:", tbs.extKeyUsageExt.is_critical)
             eku = tbs.extKeyUsageExt.value
             set_flags = [flag for flag in list(ExtendedKeyUsageExt._keyPurposeAttrs.values()) if getattr(eku, flag)]
-            print(("\t\t", ",".join(set_flags)))
+            print("\t\t", ",".join(set_flags))
 
         if tbs.keyUsageExt:
-            print(("\tKey Usage: is_critical:", tbs.keyUsageExt.is_critical))
+            print("\tKey Usage: is_critical:", tbs.keyUsageExt.is_critical)
             ku = tbs.keyUsageExt.value
             flags = ["digitalSignature", "nonRepudiation", "keyEncipherment",
                      "dataEncipherment", "keyAgreement", "keyCertSign",
@@ -914,38 +913,38 @@ class X509Certificate(BaseModel):
             ]
 
             set_flags = [flag for flag in flags if getattr(ku, flag)]
-            print(("\t\t", ",".join(set_flags)))
+            print("\t\t", ",".join(set_flags))
 
         if tbs.policyConstraintsExt:
-            print(("\tPolicy Constraints: is_critical:", tbs.policyConstraintsExt.is_critical))
+            print("\tPolicy Constraints: is_critical:", tbs.policyConstraintsExt.is_critical)
             pc = tbs.policyConstraintsExt.value
 
-            print(("\t\trequire explicit policy: ", pc.requireExplicitPolicy))
-            print(("\t\tinhibit policy mapping: ", pc.inhibitPolicyMapping))
+            print("\t\trequire explicit policy: ", pc.requireExplicitPolicy)
+            print("\t\tinhibit policy mapping: ", pc.inhibitPolicyMapping)
 
         #if tbs.netscapeCertTypeExt: #...partially implemented
 
         if tbs.subjAltNameExt:
-            print(("\tSubject Alternative Name: is_critical:", tbs.subjAltNameExt.is_critical))
+            print("\tSubject Alternative Name: is_critical:", tbs.subjAltNameExt.is_critical)
             for key, value in tbs.subjAltNameExt.value.items:
-                print(("\t\t%s: %s" % (key, value)))
+                print("\t\t%s: %s" % (key, value))
 
         if tbs.subjKeyIdExt:
-            print(("\tSubject Key Id: is_critical:", tbs.subjKeyIdExt.is_critical))
+            print("\tSubject Key Id: is_critical:", tbs.subjKeyIdExt.is_critical)
             ski = tbs.subjKeyIdExt.value
-            print(("\t\tkey id:", self.enc(ski.subject_key_id, 3)))
+            print("\t\tkey id:", self.enc(ski.subject_key_id, 3))
 
         if tbs.nameConstraintsExt:
             nce = tbs.nameConstraintsExt.value
-            print(("\tName constraints: is_critical:", tbs.nameConstraintsExt.is_critical))
+            print("\tName constraints: is_critical:", tbs.nameConstraintsExt.is_critical)
 
             subtreeFmt = lambda subtrees: ", ".join([str(x) for x in subtrees])
             if nce.permittedSubtrees:
-                print(("\t\tPermitted:", subtreeFmt(nce.permittedSubtrees)))
+                print("\t\tPermitted:", subtreeFmt(nce.permittedSubtrees))
             if nce.excludedSubtrees:
-                print(("\t\tExcluded:", subtreeFmt(nce.excludedSubtrees)))
+                print("\t\tExcluded:", subtreeFmt(nce.excludedSubtrees))
 
-        print(("Signature:", self.enc(self.signature)))
+        print("Signature:", self.enc(self.signature))
         print("=== EOF X509 Certificate ===")
 
 
@@ -1098,14 +1097,14 @@ class SignerInfo(BaseModel):
 
     def display(self):
         print("== Signer info ==")
-        print(("Certificate serial number: 0x%x" % self.serial_number))
-        print(("Issuer:", self.issuer))
-        print(("Digest Algorithm:", self.oid2name(self.digest_algorithm)))
-        print(("Signature:", self.enc(self.signature)))
+        print("Certificate serial number: 0x%x" % self.serial_number)
+        print("Issuer:", self.issuer)
+        print("Digest Algorithm:", self.oid2name(self.digest_algorithm))
+        print("Signature:", self.enc(self.signature))
         if self.auth_attributes:
             print("Attributes:")
             for attr in self.auth_attributes.attributes:
-                print(("    ", str(attr)))
+                print("    ", str(attr))
         print("== EOF Signer info ==")
 
 
@@ -1119,8 +1118,8 @@ class MsgImprint(BaseModel):
 
     def display(self, level=1):
         sep = "\t" * level
-        print((sep, "Algorithm Id:", self.alg))
-        print((sep, "Value:", self.enc(self.imprint, 2)))
+        print(sep, "Algorithm Id:", self.alg)
+        print(sep, "Value:", self.enc(self.imprint, 2))
 
 
 class TsAccuracy(BaseModel):
@@ -1141,9 +1140,9 @@ class TsAccuracy(BaseModel):
 
     def display(self):
         print("==== Accuracy ====")
-        print(("Seconds:", self.seconds or ''))
-        print(("Milis:", self.milis or ''))
-        print(("Micros", self.micros or ''))
+        print("Seconds:", self.seconds or '')
+        print("Milis:", self.milis or '')
+        print("Micros", self.micros or '')
         print("==== EOF Accuracy ====")
 
 
@@ -1206,14 +1205,14 @@ class TSTInfo(BaseModel):
 
     def display(self):
         print("=== Timestamp Info ===")
-        print(("Version:", self.version))
-        print(("Policy:", self.policy))
+        print("Version:", self.version)
+        print("Policy:", self.policy)
         print("msgImprint:")
         self.msgImprint.display()
-        print(("Serial number:", self.serialNumber))
-        print(("Time:", self.genTime))
+        print("Serial number:", self.serialNumber)
+        print("Time:", self.genTime)
         self.accuracy.display()
-        print(("TSA:", self.tsa))
+        print("TSA:", self.tsa)
         print("=== EOF Timestamp Info ===")
 
 
@@ -1230,11 +1229,11 @@ class EncapsulatedContentInfo(BaseModel):
 
     def display(self):
         print("== Encapsulated content Info ==")
-        print(("ContentType:", self.contentType))
+        print("ContentType:", self.contentType)
         try:
             self.content.display()
         except AttributeError:
-            print(("Content:", self.content))
+            print("Content:", self.content)
 
 
 class PKCS7_SignedData(BaseModel):
@@ -1254,7 +1253,7 @@ class PKCS7_SignedData(BaseModel):
 
     def display(self):
         print("= PKCS7 signature block =")
-        print(("PKCS7 Version:", self.version))
+        print("PKCS7 Version:", self.version)
         self.encapsulatedContentInfo.display()
         for signerInfo in self.signerInfos:
             signerInfo.display()

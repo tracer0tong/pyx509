@@ -69,7 +69,7 @@ def get_DSA_pub_key_material(subjectPublicKeyAsn1, parametersAsn1):
     pubkey = subjectPublicKeyAsn1.toOctets()
 
     key = decode(pubkey, asn1Spec=DsaPubKey())[0]
-    parameters = decode(str(parametersAsn1), asn1Spec=DssParams())[0]
+    parameters = decode(parametersAsn1, asn1Spec=DssParams())[0]
     paramDict = {"pub": int(key)}
 
     for param in ['p', 'q', 'g']:
