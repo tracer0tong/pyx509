@@ -30,9 +30,7 @@ from pyx509.pkcs7.asn1_models.oid import oid_map
 from pyx509.pkcs7.asn1_models.tools import tuple_to_OID, get_RSA_pub_key_material, get_DSA_pub_key_material
 from pyx509.pkcs7.asn1_models.X509_certificate import Certificate as asn1_Certificate
 from pyx509.pkcs7.asn1_models.pkcs_signed_data import Qts
-#from pkcs7.asn1_models.certificate_extensions import *
 from pyx509.pkcs7.asn1_models import certificate_extensions as asn1_cert_ext
-#from pkcs7.debug import *
 from pyx509.pkcs7.asn1_models.decoder_workarounds import decode
 from pyx509.pkcs7 import pkcs7_decoder
 
