@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -20,19 +19,18 @@
 Decoding of PKCS7 messages
 '''
 
-from cStringIO import StringIO
+from io import StringIO
 
 # dslib imports
 from pkcs7.asn1_models.decoder_workarounds import decode
 
 # local imports
-from asn1_models.pkcs_signed_data import *
-from asn1_models.digest_info import *
-from asn1_models.TST_info import *
+from .asn1_models.pkcs_signed_data import *
+from .asn1_models.digest_info import *
+from .asn1_models.TST_info import *
 
 
 class StringView(object):
-
     def __init__(self, string, start, end):
         self._string = string
         self._start = start
@@ -47,29 +45,29 @@ class StringView(object):
     def __getitem__(self, key):
         if type(key) == int:
             if key < 0:
-                self._string.seek(self._end+key)
+                self._string.seek(self._end + key)
                 return self._string.read(1)
             if key >= (self._end - self._start):
                 raise IndexError()
-            self._string.seek(self._start+key)
+            self._string.seek(self._start + key)
             return self._string.read(1)
         elif type(key) == slice:
             if key.stop is None:
                 end = self._end
             elif key.stop < 0:
-                end = self._end+key.stop
+                end = self._end + key.stop
             else:
-                end = self._start+key.stop
-            start = self._start+(key.start or 0)
+                end = self._start + key.stop
+            start = self._start + (key.start or 0)
             return StringView(self._string, start=start, end=end)
         else:
             raise IndexError()
 
     def __str__(self):
         self._string.seek(self._start)
-        return self._string.read(self._end-self._start)
+        return self._string.read(self._end - self._start)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return len(self)
 
 

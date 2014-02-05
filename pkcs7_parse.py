@@ -12,7 +12,7 @@ def print_signature_info(derData):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: pkcs7_parse.py pkcs7_enveloped.der"
+        print("Usage: pkcs7_parse.py pkcs7_enveloped.der")
         sys.exit(1)
     der_file = sys.argv[1]
-    print_signature_info(file(der_file).read())
+    print_signature_info(open(der_file, 'rb').read())

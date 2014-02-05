@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -21,6 +20,7 @@
 import base64
 import hashlib
 import logging
+
 logger = logging.getLogger("pkcs7.digest")
 
 RSA_NAME = "RSA"

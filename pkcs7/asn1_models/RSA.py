@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -22,16 +21,18 @@ Created on Dec 9, 2009
 '''
 
 # dslib imports
-from pyasn1.type import tag,namedtype,univ
+from pyasn1.type import tag, namedtype, univ
 from pyasn1 import error
+
 
 class Modulus(univ.OctetString):
     tagSet = univ.OctetString.tagSet.tagImplicitly(
-                                                tag.Tag(tag.tagClassUniversal, tag.tagFormatSimple, 0x02)
-                                                )
+        tag.Tag(tag.tagClassUniversal, tag.tagFormatSimple, 0x02)
+    )
+
 
 class RsaPubKey(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                                         namedtype.NamedType("modulus", Modulus()), 
-                                         namedtype.NamedType("exp", univ.Integer())
-                                         )
+        namedtype.NamedType("modulus", Modulus()),
+        namedtype.NamedType("exp", univ.Integer())
+    )

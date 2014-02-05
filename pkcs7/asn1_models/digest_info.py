@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -22,15 +21,16 @@ Created on Dec 9, 2009
 '''
 
 # dslib imports
-from pyasn1.type import tag,namedtype,univ
+from pyasn1.type import tag, namedtype, univ
 from pyasn1 import error
 
 # local imports
-from general_types import AlgorithmIdentifier
+from .general_types import AlgorithmIdentifier
+
 
 class DigestInfo(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                                         namedtype.NamedType("digestAgorithm", AlgorithmIdentifier()),
-                                         namedtype.NamedType("digest", univ.OctetString())
-                                         )
+        namedtype.NamedType("digestAgorithm", AlgorithmIdentifier()),
+        namedtype.NamedType("digest", univ.OctetString())
+    )
     

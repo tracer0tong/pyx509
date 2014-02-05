@@ -23,6 +23,7 @@ Verifying of PKCS7 messages
 
 # standard library imports
 import logging
+
 logger = logging.getLogger('pkcs7.verifier')
 
 # dslib imports
@@ -30,15 +31,15 @@ from pyasn1.codec.der import encoder
 from dslib.certs.cert_finder import *
 
 # local imports
-from asn1_models.tools import *
-from asn1_models.oid import *
-from asn1_models.X509_certificate import *
-from asn1_models.pkcs_signed_data import *
-from asn1_models.RSA import *
-from asn1_models.digest_info import *
+from .asn1_models.tools import *
+from .asn1_models.oid import *
+from .asn1_models.X509_certificate import *
+from .asn1_models.pkcs_signed_data import *
+from .asn1_models.RSA import *
+from .asn1_models.digest_info import *
 from rsa_verifier import *
-from debug import *
-from digest import RSA_NAME, calculate_digest
+from .debug import *
+from .digest import RSA_NAME, calculate_digest
 
 
 MESSAGE_DIGEST_KEY = "1.2.840.113549.1.9.4"
@@ -71,8 +72,8 @@ def _get_key_material(certificate):
               .getComponentByName("subjectPublicKey"))
 
     signing_alg = str(cert_finder._get_tbs_certificate(certificate)
-                      .getComponentByName("subjectPublicKeyInfo")
-                      .getComponentByName("algorithm"))
+    .getComponentByName("subjectPublicKeyInfo")
+    .getComponentByName("algorithm"))
 
     algorithm = None
     if signing_alg in oid_map:
@@ -137,7 +138,7 @@ def _verify_data(data, certificates, signer_infos):
                     if (value != calculated):
                         raise Exception("Digest in authenticated attributes differs\
                                         from the digest of message!")
-            # prepare authAttributes to verification - change some headers in it
+                # prepare authAttributes to verification - change some headers in it
             data_to_verify = _prepare_auth_attributes_to_digest(auth_attributes)
 
         data_to_verify = calculate_digest(data_to_verify, digest_alg)
@@ -151,8 +152,8 @@ def _verify_data(data, certificates, signer_infos):
                 return False
             else:
                 result = True
-        # Note: here we should not have unknown signing algorithm
-        # .....only RSA for now
+                # Note: here we should not have unknown signing algorithm
+                # .....only RSA for now
     return result
 
 

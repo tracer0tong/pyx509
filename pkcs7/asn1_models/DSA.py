@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -17,7 +16,7 @@
 #*    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #*
 
-from pyasn1.type import namedtype,univ
+from pyasn1.type import namedtype, univ
 
 # 7.3.3  DSA Signature Keys
 #
@@ -27,11 +26,12 @@ from pyasn1.type import namedtype,univ
 #    g             INTEGER  }
 
 class DsaPubKey(univ.Integer):
-	pass
+    pass
+
 
 class DssParams(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                                         namedtype.NamedType("p", univ.Integer()),
-                                         namedtype.NamedType("q", univ.Integer()),
-                                         namedtype.NamedType("g", univ.Integer()),
-                                         )
+        namedtype.NamedType("p", univ.Integer()),
+        namedtype.NamedType("q", univ.Integer()),
+        namedtype.NamedType("g", univ.Integer()),
+    )

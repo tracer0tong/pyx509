@@ -19,7 +19,7 @@
 #*
 
 import sys
-from pkcs7_models import X509Certificate
+from .pkcs7_models import X509Certificate
 
 
 def print_certificate_info(derData):
@@ -31,8 +31,8 @@ def print_certificate_info(derData):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: x509_parse.py certificate.der"
+        print("Usage: x509_parse.py certificate.der")
         sys.exit(1)
 
     der_file = sys.argv[1]
-    print_certificate_info(file(der_file).read())
+    print_certificate_info(open(der_file, 'rb').read())

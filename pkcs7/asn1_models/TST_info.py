@@ -1,4 +1,3 @@
-
 #*    pyx509 - Python library for parsing X.509
 #*    Copyright (C) 2009-2010  CZ.NIC, z.s.p.o. (http://www.nic.cz)
 #*
@@ -46,46 +45,55 @@ TSTInfo ::= SEQUENCE  {
 import string
 
 # dslib imports
-from pyasn1.type import tag,namedtype,univ,char,useful
+from pyasn1.type import tag, namedtype, univ, char, useful
 from pyasn1 import error
 
 # local imports
-from X509_certificate import *
-from general_types import *
-from oid import oid_map as oid_map
-from certificate_extensions import *
+from .X509_certificate import *
+from .general_types import *
+from .oid import oid_map as oid_map
+from .certificate_extensions import *
 
 
 class MessageImprint(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                        namedtype.NamedType("algId", AlgorithmIdentifier()),
-                        namedtype.NamedType("imprint", univ.OctetString())
-                                         )
+        namedtype.NamedType("algId", AlgorithmIdentifier()),
+        namedtype.NamedType("imprint", univ.OctetString())
+    )
+
 
 class Accuracy(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                        namedtype.OptionalNamedType("seconds", univ.Integer()),
-                        namedtype.OptionalNamedType("milis", univ.Integer().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x0))),
-                        namedtype.OptionalNamedType("micros", univ.Integer().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x1)))
-                        )
-    
+        namedtype.OptionalNamedType("seconds", univ.Integer()),
+        namedtype.OptionalNamedType("milis", univ.Integer().subtype(
+            implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x0))),
+        namedtype.OptionalNamedType("micros", univ.Integer().subtype(
+            implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x1)))
+    )
+
+
 class TSAName(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                            namedtype.NamedType("name", RDNSequence().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0x4))),
-                                         )
+        namedtype.NamedType("name", RDNSequence().subtype(
+            explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0x4))),
+    )
+
     def __str__(self):
         return str(self.getComponentByName("name"))
-    
+
+
 class TSTInfo(univ.Sequence):
     componentType = namedtype.NamedTypes(
-                        namedtype.NamedType("version", univ.Integer()),                        
-                        namedtype.NamedType("policy", univ.ObjectIdentifier()),
-                        namedtype.NamedType("messageImprint", MessageImprint()),
-                        namedtype.NamedType("serialNum", univ.Integer()),
-                        namedtype.NamedType("genTime", useful.GeneralizedTime()),
-                        namedtype.OptionalNamedType("accuracy", Accuracy()),
-                        namedtype.DefaultedNamedType("ordering", univ.Boolean('False')),
-                        namedtype.OptionalNamedType("nonce", univ.Integer()),
-                        namedtype.OptionalNamedType("tsa", TSAName().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0x0))),                        
-                        namedtype.OptionalNamedType("extensions", univ.Sequence().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x1)))
-                    )
+        namedtype.NamedType("version", univ.Integer()),
+        namedtype.NamedType("policy", univ.ObjectIdentifier()),
+        namedtype.NamedType("messageImprint", MessageImprint()),
+        namedtype.NamedType("serialNum", univ.Integer()),
+        namedtype.NamedType("genTime", useful.GeneralizedTime()),
+        namedtype.OptionalNamedType("accuracy", Accuracy()),
+        namedtype.DefaultedNamedType("ordering", univ.Boolean('False')),
+        namedtype.OptionalNamedType("nonce", univ.Integer()),
+        namedtype.OptionalNamedType("tsa", TSAName().subtype(
+            implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0x0))),
+        namedtype.OptionalNamedType("extensions", univ.Sequence().subtype(
+            implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0x1)))
+    )
