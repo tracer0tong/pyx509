@@ -24,7 +24,7 @@ Created on Dec 3, 2009
 import string
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ, useful
+from pyasn1.type import tag, namedtype, univ, useful, namedval
 from pyasn1 import error
 
 # local imports

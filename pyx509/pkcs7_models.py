@@ -26,15 +26,15 @@ import datetime
 import time
 
 from pyasn1.error import PyAsn1Error
-from pkcs7.asn1_models.oid import oid_map
-from pkcs7.asn1_models.tools import tuple_to_OID, get_RSA_pub_key_material, get_DSA_pub_key_material
-from pkcs7.asn1_models.X509_certificate import Certificate as asn1_Certificate
-from pkcs7.asn1_models.pkcs_signed_data import Qts
+from pyx509.pkcs7.asn1_models.oid import oid_map
+from pyx509.pkcs7.asn1_models.tools import tuple_to_OID, get_RSA_pub_key_material, get_DSA_pub_key_material
+from pyx509.pkcs7.asn1_models.X509_certificate import Certificate as asn1_Certificate
+from pyx509.pkcs7.asn1_models.pkcs_signed_data import Qts
 #from pkcs7.asn1_models.certificate_extensions import *
-from pkcs7.asn1_models import certificate_extensions as asn1_cert_ext
+from pyx509.pkcs7.asn1_models import certificate_extensions as asn1_cert_ext
 #from pkcs7.debug import *
-from pkcs7.asn1_models.decoder_workarounds import decode
-from pkcs7 import pkcs7_decoder
+from pyx509.pkcs7.asn1_models.decoder_workarounds import decode
+from pyx509.pkcs7 import pkcs7_decoder
 
 
 class CertificateError(Exception):
@@ -1279,4 +1279,4 @@ class PKCS7(BaseModel):
         try:
             self.content.display()
         except AttributeError:
-            print((self.content))
+            print(self.content)

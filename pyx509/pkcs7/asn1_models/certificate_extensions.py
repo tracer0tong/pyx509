@@ -20,16 +20,12 @@ Certificate extensions specifications
 '''
 
 # standard library imports
-import string
 
 # dslib imports
 from pyasn1.type import tag, namedtype, univ
-from pyasn1 import error
 
 # local imports
-from .tools import *
-from .oid import oid_map as oid_map
-from .general_types import *
+from pyx509.pkcs7.asn1_models.general_types import *
 
 
 #RDNS sequence otagovana A4 (constructed octet string)

@@ -31,15 +31,10 @@ from pyasn1.codec.der import encoder
 from dslib.certs.cert_finder import *
 
 # local imports
-from .asn1_models.tools import *
-from .asn1_models.oid import *
-from .asn1_models.X509_certificate import *
-from .asn1_models.pkcs_signed_data import *
-from .asn1_models.RSA import *
-from .asn1_models.digest_info import *
+from .pyx509.pkcs7.asn1_models.pkcs_signed_data import *
 from rsa_verifier import *
-from .debug import *
-from .digest import RSA_NAME, calculate_digest
+from .pyx509.pkcs7.debug import *
+from .pyx509.pkcs7.digest import RSA_NAME, calculate_digest
 
 
 MESSAGE_DIGEST_KEY = "1.2.840.113549.1.9.4"

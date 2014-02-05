@@ -25,6 +25,7 @@ differences.
 
 # standard library imports
 import logging
+from pyx509.pkcs7 import pkcs7_decoder, verifier
 
 logger = logging.getLogger("pkcs7.tstamp_helper")
 import base64
@@ -34,8 +35,6 @@ from dslib.certs.cert_finder import *
 from dslib import models
 
 # local imports
-from . import pkcs7_decoder
-from . import verifier
 
 
 def parse_qts(dmQTimestamp, verify=False):

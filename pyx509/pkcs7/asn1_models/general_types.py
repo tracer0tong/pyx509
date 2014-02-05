@@ -21,12 +21,11 @@ Created on Dec 9, 2009
 '''
 
 # dslib imports
-from pyasn1.type import tag, namedtype, namedval, univ, char, useful
-from pyasn1 import error
+from pyasn1.type import tag, namedtype, univ, char
 
 # local imports
-from .tools import *
-from .oid import *
+from pyx509.pkcs7.asn1_models.tools import *
+from pyx509.pkcs7.asn1_models.oid import *
 
 
 class ConvertibleBitString(univ.BitString):

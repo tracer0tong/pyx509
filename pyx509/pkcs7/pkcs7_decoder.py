@@ -22,12 +22,11 @@ Decoding of PKCS7 messages
 from io import StringIO
 
 # dslib imports
-from pkcs7.asn1_models.decoder_workarounds import decode
+from pyx509.pkcs7.asn1_models.decoder_workarounds import decode
 
 # local imports
-from .asn1_models.pkcs_signed_data import *
-from .asn1_models.digest_info import *
-from .asn1_models.TST_info import *
+from pyx509.pkcs7.asn1_models.pkcs_signed_data import *
+from pyx509.pkcs7.asn1_models.TST_info import *
 
 
 class StringView(object):

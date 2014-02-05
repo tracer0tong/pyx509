@@ -45,15 +45,12 @@ CertificateList  ::=  SEQUENCE  {
 '''
 
 # standard library imports
-import string
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ, useful
-from pyasn1 import error
 
 # local imports
-from .general_types import *
-from .X509_certificate import *
+from pyx509.pkcs7.asn1_models.general_types import *
+from pyx509.pkcs7.asn1_models.X509_certificate import *
 
 
 class RevokedCertInfo(univ.Sequence):

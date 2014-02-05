@@ -20,17 +20,14 @@ Model for pkcs#7 v1.5 signedData content
 '''
 
 # standard library imports
-import string
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ, useful
-from pyasn1 import error
+from pyasn1.type import tag, namedtype, univ
 
 # local imports
-from .X509_certificate import Certificates
-from .att_certificate_v2 import CertificateSet
-from .general_types import *
-from .oid import oid_map as oid_map
+from pyx509.pkcs7.asn1_models.X509_certificate import Certificates
+from pyx509.pkcs7.asn1_models.att_certificate_v2 import CertificateSet
+from pyx509.pkcs7.asn1_models.general_types import *
 
 
 class SignedContent(univ.SequenceOf):
