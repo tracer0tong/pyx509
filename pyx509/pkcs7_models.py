@@ -184,18 +184,14 @@ class ValidityInterval(BaseModel):
             # already in YYYYMMDDHHMMSSZ format
             return timeComponent.getComponent()._value
         else:  # utcTime
-            # YYMMDDHHMMSSZ format
-            # UTCTime has only short year format (last two digits), so add
-            # 19 or 20 to make it "full" year; by RFC 5280 it's range 1950..2049
-            # !!!! some hack to get signingTime working
+            # Well seems like new certificates can be generated
+            # with dates after 2050. So, all years should be 20+last_two_digits
             try:
                 timeValue = timeComponent.getComponent()._value
             except AttributeError:
                 timeValue = str(timeComponent[1][0])
-            shortyear = int(timeValue[:2])
-            if shortyear < 19:
-                return b"20" + timeValue
-            return timeValue
+            print(timeValue)
+            return b"20" + timeValue
 
     @classmethod
     def parse_date(cls, date):
