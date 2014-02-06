@@ -182,7 +182,7 @@ class ValidityInterval(BaseModel):
             pass
         if name == b"generalTime":  # from pkcs7.asn1_models.X509_certificate.Time
             # already in YYYYMMDDHHMMSSZ format
-            return timeComponent.getComponent()._value
+            return b"20"+timeComponent.getComponent()._value
         else:  # utcTime
             # Well seems like new certificates can be generated
             # with dates after 2050. So, all years should be 20+last_two_digits
@@ -190,7 +190,9 @@ class ValidityInterval(BaseModel):
                 timeValue = timeComponent.getComponent()._value
             except AttributeError:
                 timeValue = str(timeComponent[1][0])
-            return b"20" + timeValue
+            if len(timeValue) == 13:
+                return b"20" + timeValue
+            return timeValue
 
     @classmethod
     def parse_date(cls, date):
