@@ -190,7 +190,6 @@ class ValidityInterval(BaseModel):
                 timeValue = timeComponent.getComponent()._value
             except AttributeError:
                 timeValue = str(timeComponent[1][0])
-            print(timeValue)
             return b"20" + timeValue
 
     @classmethod
