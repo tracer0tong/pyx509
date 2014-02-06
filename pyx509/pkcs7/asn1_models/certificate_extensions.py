@@ -22,7 +22,6 @@ Certificate extensions specifications
 # standard library imports
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ
 
 # local imports
 from pyx509.pkcs7.asn1_models.general_types import *

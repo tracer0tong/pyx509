@@ -21,15 +21,11 @@ Created on Dec 3, 2009
 '''
 
 # standard library imports
-import string
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ, useful, namedval
-from pyasn1 import error
+from pyasn1.type import useful, namedval
 
 # local imports
-from .tools import *
-from .oid import oid_map as oid_map
 from .general_types import *
 
 

@@ -47,7 +47,6 @@ TSTInfo ::= SEQUENCE  {
 
 # local imports
 from pyx509.pkcs7.asn1_models.X509_certificate import *
-from pyx509.pkcs7.asn1_models.general_types import *
 from pyx509.pkcs7.asn1_models.certificate_extensions import *
 
 

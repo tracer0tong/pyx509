@@ -22,7 +22,6 @@ Model for pkcs#7 v1.5 signedData content
 # standard library imports
 
 # dslib imports
-from pyasn1.type import tag, namedtype, univ
 
 # local imports
 from pyx509.pkcs7.asn1_models.X509_certificate import Certificates

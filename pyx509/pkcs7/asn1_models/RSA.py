@@ -22,7 +22,6 @@ Created on Dec 9, 2009
 
 # dslib imports
 from pyasn1.type import tag, namedtype, univ
-from pyasn1 import error
 
 
 class Modulus(univ.OctetString):

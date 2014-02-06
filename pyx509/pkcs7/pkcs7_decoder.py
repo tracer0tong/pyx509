@@ -22,7 +22,6 @@ Decoding of PKCS7 messages
 from io import StringIO
 
 # dslib imports
-from pyx509.pkcs7.asn1_models.decoder_workarounds import decode
 
 # local imports
 from pyx509.pkcs7.asn1_models.pkcs_signed_data import *

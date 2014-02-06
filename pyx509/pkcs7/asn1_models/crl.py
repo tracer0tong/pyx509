@@ -49,7 +49,6 @@ CertificateList  ::=  SEQUENCE  {
 # dslib imports
 
 # local imports
-from pyx509.pkcs7.asn1_models.general_types import *
 from pyx509.pkcs7.asn1_models.X509_certificate import *
 
 

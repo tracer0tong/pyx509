@@ -25,7 +25,6 @@ from pyasn1.type import tag, namedtype, univ, char
 
 # local imports
 from pyx509.pkcs7.asn1_models.tools import *
-from pyx509.pkcs7.asn1_models.oid import *
 
 
 class ConvertibleBitString(univ.BitString):
