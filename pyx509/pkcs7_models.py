@@ -57,7 +57,9 @@ class BaseModel(object):
         """
         sep = '\n' + (level * '\t')
         format = format or 'b64'
-        if format == 'hex':
+        if format == 'bin':
+            return value
+        elif format == 'hex':
             value = hexlify(value)
         else:
             value = base64.standard_b64encode(str(value).encode())
@@ -809,6 +811,22 @@ class X509Certificate(BaseModel):
         rev_date = ValidityInterval.parse_date(rev_date)
         return rev_date
 
+    def get_dict(self):
+        res = {}
+        try:
+            tbs = self.tbsCertificate
+        except AttributeError:
+            tbs = self
+        res["version"] = tbs.version + 1
+        res["serial"] = tbs.serial_number
+        res["sigalgo"] = self.oid2name(tbs.signature_algorithm)
+        res["issuer"] = str(tbs.issuer)
+        res["validnotbefore"] = tbs.validity.get_valid_from_as_datetime()
+        res["validnotafter"] = tbs.validity.get_valid_to_as_datetime()
+        res["subject"] = str(tbs.subject)
+        res["pubkeyalgo"] = tbs.pub_key_info.algName
+        return res
+
     def display(self):
         """
         Print certificate details
@@ -1103,6 +1121,18 @@ class SignerInfo(BaseModel):
         print("== EOF Signer info ==")
 
 
+    def get_dict(self):
+        res = {}
+        res["serial"] = self.serial_number
+        res["issuer"] = str(self.issuer)
+        res["digestalgo"] = self.oid2name(self.digest_algorithm)
+        res["signature"] = self.enc(self.signature, format='bin')
+        if self.auth_attributes:
+            res["attributes"] = []
+            for attr in self.auth_attributes.attributes:
+                res["attributes"].append(str(attr))
+        return res
+
 ######
 #TSTinfo
 ######
@@ -1230,6 +1260,10 @@ class EncapsulatedContentInfo(BaseModel):
         except AttributeError:
             print("Content:", self.content)
 
+    #TODO: Add realisation
+    def get_dict(self):
+        pass
+
 
 class PKCS7_SignedData(BaseModel):
     """A PKCS 7 signed data object"""
@@ -1256,6 +1290,18 @@ class PKCS7_SignedData(BaseModel):
             cert.display()
         print("= EOF PKsCS7 signature block =")
 
+    def get_dict(self):
+        res = {}
+        res["pkcs7version"] = self.version
+        res["enccontent"] = self.encapsulatedContentInfo.get_dict()
+        res["signerinfos"] = []
+        for signerInfo in self.signerInfos:
+            res["signerinfos"].append(signerInfo.get_dict())
+        res["certificates"] = []
+        for cert in self.certificates:
+            res["certificates"].append(cert.get_dict())
+        return res
+
 
 class PKCS7(BaseModel):
     """A PKCS 7 object
@@ -1269,6 +1315,9 @@ class PKCS7(BaseModel):
             self.content = PKCS7_SignedData(content)
         else:
             raise ValueError("Currently we only can handle PKCS7 'signedData' messages")
+
+    def get_dict(self):
+        return self.content.get_dict()
 
     def display(self):
         try:
