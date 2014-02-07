@@ -1262,7 +1262,15 @@ class EncapsulatedContentInfo(BaseModel):
 
     #TODO: Add realisation
     def get_dict(self):
-        pass
+        res = {}
+        res["contenttype"] = str(self.contentType)
+        try:
+            res["content"] = ""
+            #res["content"] = self.content.get_dict()
+        except AttributeError:
+            #res["content"] = self.content
+            pass
+        return res
 
 
 class PKCS7_SignedData(BaseModel):
@@ -1292,7 +1300,7 @@ class PKCS7_SignedData(BaseModel):
 
     def get_dict(self):
         res = {}
-        res["pkcs7version"] = self.version
+        res["pkcs7version"] = str(self.version)
         res["enccontent"] = self.encapsulatedContentInfo.get_dict()
         res["signerinfos"] = []
         for signerInfo in self.signerInfos:
