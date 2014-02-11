@@ -9,5 +9,8 @@ setup(
     author_email='erevilla@tangrambpm.es, tracer.tong@yandex.ru',
     packages=['pyx509','pyx509.pkcs7','pyx509.pkcs7.asn1_models'],
     scripts=['bin/pkcs7_parse.py', 'bin/x509_parse.py'],
-    description='Py3k x509 protocol files parser'
+    description='Py3k x509 protocol files parser',
+    install_requires=[
+        "pyasn1",
+    ],
 )
