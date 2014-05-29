@@ -825,6 +825,7 @@ class X509Certificate(BaseModel):
         res["validnotafter"] = tbs.validity.get_valid_to_as_datetime()
         res["subject"] = str(tbs.subject)
         res["pubkeyalgo"] = tbs.pub_key_info.algName
+        res["signature"] = self.enc(self.signature)
         return res
 
     def display(self):
@@ -1126,7 +1127,7 @@ class SignerInfo(BaseModel):
         res["serial"] = self.serial_number
         res["issuer"] = str(self.issuer)
         res["digestalgo"] = self.oid2name(self.digest_algorithm)
-        res["signature"] = self.enc(self.signature, format='bin')
+        res["signature"] = self.enc(self.signature)
         if self.auth_attributes:
             res["attributes"] = []
             for attr in self.auth_attributes.attributes:
